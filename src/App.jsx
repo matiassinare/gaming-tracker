@@ -4,6 +4,7 @@ import GameList from './components/GameList'
 import GameForm from './components/GameForm'
 import ProgressBar from './components/ProgressBar'
 import Auth from './components/Auth'
+import Footer from './components/Footer'
 
 function App() {
   const [games, setGames] = useState([])
@@ -49,11 +50,17 @@ function App() {
   }
 
   const addGame = async (game) => {
+    // Verificar límite de 100 juegos
+    if (games.length >= 100) {
+      alert('Llegaste al límite de 100 juegos en tu backlog. Eliminá algunos juegos completados para agregar más.')
+      return
+    }
+
     const newGame = { 
       name: game.name, 
       platform: game.platform, 
       image: game.image || null,
-      completed: false,
+      status: 'pending',
       user_id: user.id
     }
     
@@ -69,19 +76,17 @@ function App() {
     }
   }
 
-  const toggleComplete = async (id) => {
-    const game = games.find(g => g.id === id)
-    
+  const updateStatus = async (id, newStatus) => {
     const { error } = await supabase
       .from('games')
-      .update({ completed: !game.completed })
+      .update({ status: newStatus })
       .eq('id', id)
     
     if (error) {
       console.error('Error updating game:', error)
     } else {
       setGames(games.map(g => 
-        g.id === id ? { ...g, completed: !g.completed } : g
+        g.id === id ? { ...g, status: newStatus } : g
       ))
     }
   }
@@ -130,7 +135,7 @@ function App() {
     return <Auth />
   }
 
-  const completedCount = games.filter(g => g.completed).length
+  const completedCount = games.filter(g => g.status === 'completed').length
 
   if (loading) {
     return (
@@ -160,15 +165,22 @@ function App() {
           {games.length > 0 && (
             <ProgressBar completed={completedCount} total={games.length} />
           )}
+          {games.length >= 80 && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⚠️ Límite: {games.length}/100 juegos
+            </p>
+          )}
         </header>
         
         <GameForm onAdd={addGame} />
         <GameList 
           games={games}
-          onToggle={toggleComplete} 
+          onUpdateStatus={updateStatus} 
           onDelete={deleteGame}
           onEdit={editGame}
         />
+        
+        <Footer />
       </div>
     </div>
   )
