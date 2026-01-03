@@ -3,14 +3,35 @@ import { supabase } from './supabase'
 import GameList from './components/GameList'
 import GameForm from './components/GameForm'
 import ProgressBar from './components/ProgressBar'
+import Auth from './components/Auth'
 
 function App() {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    loadGames()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      loadGames()
+    } else {
+      setGames([])
+    }
+  }, [user])
 
   const loadGames = async () => {
     setLoading(true)
@@ -32,10 +53,9 @@ function App() {
       name: game.name, 
       platform: game.platform, 
       image: game.image || null,
-      completed: false 
+      completed: false,
+      user_id: user.id
     }
-    
-    console.log('Agregando juego:', newGame)
     
     const { data, error } = await supabase
       .from('games')
@@ -44,9 +64,7 @@ function App() {
     
     if (error) {
       console.error('Error adding game:', error)
-      alert(`Error al agregar el juego: ${error.message}\n\nAsegúrate de haber ejecutado el script SQL en Supabase para agregar la columna 'image'.`)
     } else if (data && data.length > 0) {
-      console.log('Juego agregado exitosamente:', data[0])
       setGames([data[0], ...games])
     }
   }
@@ -81,6 +99,37 @@ function App() {
     }
   }
 
+  const editGame = async (id, updates) => {
+    const { error } = await supabase
+      .from('games')
+      .update(updates)
+      .eq('id', id)
+    
+    if (error) {
+      console.error('Error updating game:', error)
+    } else {
+      setGames(games.map(g => 
+        g.id === id ? { ...g, ...updates } : g
+      ))
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-center">
+        <div className="text-xl">Cargando...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Auth />
+  }
+
   const completedCount = games.filter(g => g.completed).length
 
   if (loading) {
@@ -95,6 +144,15 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="text-center mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-sm text-slate-400">{user.email}</div>
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-slate-400 hover:text-white transition"
+            >
+              Cerrar sesión
+            </button>
+          </div>
           <h1 className="text-4xl font-bold mb-2">🎮 Backlog 2026</h1>
           <p className="text-slate-400 mb-4">
             {completedCount} / {games.length} completados
@@ -106,9 +164,10 @@ function App() {
         
         <GameForm onAdd={addGame} />
         <GameList 
-          games={games} 
+          games={games}
           onToggle={toggleComplete} 
-          onDelete={deleteGame} 
+          onDelete={deleteGame}
+          onEdit={editGame}
         />
       </div>
     </div>
@@ -116,4 +175,3 @@ function App() {
 }
 
 export default App
-
