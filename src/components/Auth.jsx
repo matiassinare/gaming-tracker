@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 
-export default function Auth() {
+export default function Auth({ onAuthSuccess, initialMode = 'signin' }) {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup')
   const [message, setMessage] = useState('')
 
   const handleAuth = async (e) => {
@@ -21,12 +21,22 @@ export default function Auth() {
         })
         if (error) throw error
         setMessage('¡Cuenta creada! Revisá tu email para confirmar.')
+        // Si hay callback, ejecutarlo después de crear cuenta
+        if (onAuthSuccess) {
+          setTimeout(() => {
+            onAuthSuccess()
+          }, 1000)
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
+        // Si hay callback, ejecutarlo después de iniciar sesión
+        if (onAuthSuccess) {
+          onAuthSuccess()
+        }
       }
     } catch (error) {
       setMessage(error.message)
