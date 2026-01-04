@@ -89,15 +89,26 @@ function App() {
           const parsedLocalGames = JSON.parse(localGames)
           // Migrar solo si hay juegos locales
           if (parsedLocalGames.length > 0) {
-            await migrateGamesToSupabase(parsedLocalGames)
-            // Recargar después de migrar
-            const { data: newData } = await supabase
-              .from('games')
-              .select('*')
-              .order('created_at', { ascending: false })
-            setGames(newData || [])
-            setLoading(false)
-            return
+            try {
+              await migrateGamesToSupabase(parsedLocalGames)
+              // Recargar después de migrar exitosamente
+              const { data: newData, error: reloadError } = await supabase
+                .from('games')
+                .select('*')
+                .order('created_at', { ascending: false })
+              
+              if (reloadError) {
+                console.error('Error reloading games after migration:', reloadError)
+              }
+              
+              setGames(newData || [])
+              setLoading(false)
+              return
+            } catch (migrationError) {
+              // Si falla la migración, mantener los juegos locales y mostrar los de Supabase
+              console.error('Migration failed, keeping local games:', migrationError)
+              // Continuar con los juegos de Supabase (puede estar vacío)
+            }
           }
         } catch (error) {
           console.error('Error parsing local games:', error)
@@ -224,30 +235,88 @@ function App() {
   }
 
   const migrateGamesToSupabase = async (localGames) => {
-    if (!user || !localGames || localGames.length === 0) return
+    if (!user || !localGames || localGames.length === 0) {
+      console.log('Migration skipped:', { user: !!user, localGames: localGames?.length })
+      return
+    }
 
     try {
-      // Preparar juegos para migración (sin id temporal)
-      const gamesToMigrate = localGames.map(({ id, ...game }) => ({
-        ...game,
-        user_id: user.id
-      }))
+      // Preparar juegos para migración - solo campos válidos para Supabase
+      const gamesToMigrate = localGames
+        .filter(game => game && game.name) // Filtrar juegos inválidos
+        .map((game) => {
+          // Extraer solo los campos que necesitamos, ignorando id temporal y otros campos
+          const cleanGame = {
+            name: String(game.name || '').trim(),
+            platform: String(game.platform || 'Steam').trim(),
+            image: game.image ? String(game.image).trim() : null,
+            status: game.status && ['pending', 'playing', 'completed'].includes(game.status) 
+              ? game.status 
+              : 'pending',
+            user_id: user.id
+          }
+          
+          // Validar que los campos requeridos estén presentes
+          if (!cleanGame.name) {
+            console.warn('Skipping game with empty name:', game)
+            return null
+          }
+          
+          return cleanGame
+        })
+        .filter(game => game !== null) // Eliminar juegos inválidos
 
-      const { data, error } = await supabase
-        .from('games')
-        .insert(gamesToMigrate)
-        .select()
-
-      if (error) {
-        console.error('Error migrating games:', error)
-        alert('Error al migrar juegos. Intentá de nuevo.')
-      } else {
-        // Limpiar LocalStorage después de migración exitosa
+      if (gamesToMigrate.length === 0) {
+        console.log('No valid games to migrate')
         localStorage.removeItem(STORAGE_KEY)
+        return
       }
+
+      console.log(`Migrating ${gamesToMigrate.length} games to Supabase`)
+
+      // Insertar en lotes para evitar problemas con muchos juegos
+      const batchSize = 50
+      const batches = []
+      for (let i = 0; i < gamesToMigrate.length; i += batchSize) {
+        batches.push(gamesToMigrate.slice(i, i + batchSize))
+      }
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i]
+        const { data, error } = await supabase
+          .from('games')
+          .insert(batch)
+          .select()
+
+        if (error) {
+          console.error(`Error migrating batch ${i + 1}/${batches.length}:`, error)
+          console.error('Batch data:', batch)
+          throw new Error(`Error al migrar lote ${i + 1}: ${error.message || 'Error desconocido'}`)
+        }
+        console.log(`Batch ${i + 1}/${batches.length} migrated successfully`)
+      }
+
+      // Limpiar LocalStorage después de migración exitosa
+      localStorage.removeItem(STORAGE_KEY)
+      console.log('Migration completed successfully')
     } catch (error) {
       console.error('Error migrating games:', error)
-      alert('Error al migrar juegos. Intentá de nuevo.')
+      // Mostrar error más específico
+      const errorMessage = error?.message || error?.toString() || 'Error desconocido'
+      console.error('Error details:', {
+        message: errorMessage,
+        error,
+        localGamesCount: localGames.length,
+        user: user?.id
+      })
+      
+      // No mostrar alert si es un error de red o similar, solo loguear
+      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        console.error('Network error during migration, games remain in localStorage')
+      } else {
+        alert(`Error al migrar juegos: ${errorMessage}. Los juegos siguen guardados localmente.`)
+      }
+      throw error // Re-lanzar para que loadGames pueda manejarlo
     }
   }
 
