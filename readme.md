@@ -23,25 +23,13 @@ npm install
 
 #### Supabase
 1. Crear proyecto en [supabase.com](https://supabase.com)
-2. Ejecutar SQL:
-```sql
-create table games (
-  id bigint primary key generated always as identity,
-  name text not null,
-  platform text not null,
-  image text,
-  completed boolean default false,
-  created_at timestamp with time zone default now()
-);
-
-alter table games enable row level security;
-
-create policy "Allow all operations for everyone"
-  on games
-  for all
-  using (true)
-  with check (true);
-```
+2. Ejecutar los scripts SQL en este orden (en el SQL Editor de Supabase):
+   - **Primero**: `supabase-setup.sql` - Crea la tabla básica
+   - **Segundo**: `supabase-auth-setup.sql` - Configura autenticación y RLS
+   - **Tercero**: `supabase-update.sql` - Agrega columna de imagen (si no existe)
+   - **Cuarto**: `supabase-status-migration.sql` - Migra de `completed` a `status` (IMPORTANTE)
+   
+   **Nota**: Si ya tenés la base de datos configurada, solo necesitás ejecutar `supabase-status-migration.sql` para agregar la columna `status`.
 
 #### RAWG API
 1. Ir a [rawg.io/apidocs](https://rawg.io/apidocs)
@@ -90,10 +78,14 @@ Agregar variables de entorno en Site Settings.
 - ✅ Imágenes HD con SteamGridDB
 - ✅ Agregar juegos manualmente
 - ✅ Editar juegos (nombre, imagen, plataforma)
-- ✅ Marcar como completado
+- ✅ Estados de juego: Por jugar, Jugando, Completado
+- ✅ Modo invitado con LocalStorage (sin login)
+- ✅ Migración automática a cuenta cuando te registrás
 - ✅ Barra de progreso
+- ✅ Límite de 100 juegos por usuario
 - ✅ Persistencia con Supabase
 - ✅ Sincronización multi-dispositivo
+- ✅ Diseño responsive para mobile
 
 ## Licencia
 
