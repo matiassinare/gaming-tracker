@@ -13,10 +13,10 @@ export default function GameList({ games, onUpdateStatus, onDelete }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {pending.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold mb-4">Por jugar ({pending.length})</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Por jugar ({pending.length})</h2>
           <div className="space-y-2">
             {pending.map(game => (
               <GameCard key={game.id} game={game} onUpdateStatus={onUpdateStatus} onDelete={onDelete} />
@@ -27,7 +27,7 @@ export default function GameList({ games, onUpdateStatus, onDelete }) {
 
       {playing.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold mb-4">Jugando ({playing.length}) 🎮</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Jugando ({playing.length}) 🎮</h2>
           <div className="space-y-2">
             {playing.map(game => (
               <GameCard key={game.id} game={game} onUpdateStatus={onUpdateStatus} onDelete={onDelete} />
@@ -38,7 +38,7 @@ export default function GameList({ games, onUpdateStatus, onDelete }) {
 
       {completed.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold mb-4">Completados ({completed.length}) ✓</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Completados ({completed.length}) ✓</h2>
           <div className="space-y-2 opacity-60">
             {completed.map(game => (
               <GameCard key={game.id} game={game} onUpdateStatus={onUpdateStatus} onDelete={onDelete} />
@@ -70,9 +70,9 @@ function GameCard({ game, onUpdateStatus, onDelete }) {
   }
 
   return (
-    <div className="bg-slate-800 p-4 rounded-lg flex items-center gap-4 hover:bg-slate-750 transition group">
+    <div className="bg-slate-800 p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 hover:bg-slate-750 transition group">
       {game.image ? (
-        <div className="w-52 h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-lg bg-slate-700 relative">
+        <div className="w-full sm:w-32 md:w-52 h-32 sm:h-20 md:h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-lg bg-slate-700 relative">
           <img 
             src={game.image} 
             alt={game.name}
@@ -81,34 +81,36 @@ function GameCard({ game, onUpdateStatus, onDelete }) {
           />
         </div>
       ) : (
-        <div className="w-52 h-28 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
-          <span className="text-4xl">🎮</span>
+        <div className="w-full sm:w-32 md:w-52 h-32 sm:h-20 md:h-28 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+          <span className="text-3xl sm:text-4xl">🎮</span>
         </div>
       )}
       
-      <div className="flex items-center gap-3 flex-1">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 w-full sm:w-auto">
         <button
           onClick={() => onUpdateStatus(game.id, getNextStatus())}
-          className="w-10 h-10 flex items-center justify-center rounded border-2 border-slate-600 hover:border-blue-500 transition flex-shrink-0 text-lg"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded border-2 border-slate-600 hover:border-blue-500 transition flex-shrink-0 text-base sm:text-lg"
           title={`Cambiar a: ${getNextStatus() === 'playing' ? 'Jugando' : getNextStatus() === 'completed' ? 'Completado' : 'Por jugar'}`}
         >
           {getStatusIcon()}
         </button>
         
-        <div className="flex-1">
-          <h3 className={`font-semibold text-lg ${game.status === 'completed' ? 'line-through opacity-60' : ''}`}>
+        <div className="flex-1 min-w-0">
+          <h3 className={`font-semibold text-base sm:text-lg truncate ${game.status === 'completed' ? 'line-through opacity-60' : ''}`}>
             {game.name}
           </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">{game.platform}</span>
-            <span className="text-xs text-slate-500">• {getStatusLabel()}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm text-slate-400">{game.platform}</span>
+            <span className="text-xs text-slate-500 hidden sm:inline">• {getStatusLabel()}</span>
+            <span className="text-xs text-slate-500 sm:hidden">{getStatusLabel()}</span>
           </div>
         </div>
       </div>
       
       <button
         onClick={() => onDelete(game.id)}
-        className="text-red-400 hover:text-red-300 px-3 py-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0"
+        className="text-red-400 hover:text-red-300 px-2 sm:px-3 py-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition flex-shrink-0 self-end sm:self-auto"
+        aria-label="Eliminar juego"
       >
         ✕
       </button>

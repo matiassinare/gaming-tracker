@@ -286,43 +286,43 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
+        <header className="text-center mb-6 sm:mb-8">
+          <div className="flex justify-between items-center mb-3 sm:mb-4 text-xs sm:text-sm">
             {user ? (
               <>
-                <div className="text-sm text-slate-400">{user.email}</div>
+                <div className="text-slate-400 truncate max-w-[140px] sm:max-w-none">{user.email}</div>
                 <button
                   onClick={handleSignOut}
-                  className="text-sm text-slate-400 hover:text-white transition"
+                  className="text-slate-400 hover:text-white transition whitespace-nowrap"
                 >
                   Cerrar sesión
                 </button>
               </>
             ) : (
               <>
-                <div className="text-sm text-slate-400">Modo invitado</div>
+                <div className="text-slate-400">Modo invitado</div>
                 <button
                   onClick={() => {
                     setAuthMode('signin')
                     setShowAuth(true)
                   }}
-                  className="text-sm text-slate-400 hover:text-white transition"
+                  className="text-slate-400 hover:text-white transition"
                 >
                   Iniciar sesión
                 </button>
               </>
             )}
           </div>
-          <h1 className="text-4xl font-bold mb-2">🎮 Backlog 2026</h1>
-          <p className="text-slate-400 mb-4">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2">🎮 Backlog 2026</h1>
+          <p className="text-sm sm:text-base text-slate-400 mb-3 sm:mb-4">
             {completedCount} / {games.length} completados
           </p>
           {games.length > 0 && (
             <ProgressBar completed={completedCount} total={games.length} />
           )}
           {games.length >= 80 && (
-            <p className="text-yellow-400 text-sm mt-2">
+            <p className="text-yellow-400 text-xs sm:text-sm mt-2">
               ⚠️ Límite: {games.length}/100 juegos
             </p>
           )}
